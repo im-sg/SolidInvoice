@@ -24,6 +24,7 @@ use ApiPlatform\Metadata\Post;
 use Brick\Math\BigDecimal;
 use Brick\Math\BigNumber;
 use Brick\Math\Exception\MathException;
+use Brick\Math\RoundingMode;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use SolidInvoice\CoreBundle\Doctrine\Type\BigIntegerType;
@@ -47,7 +48,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\MappedSuperclass]
 #[ORM\InheritanceType('SINGLE_TABLE')]
 #[ORM\DiscriminatorColumn(name: 'type', type: 'string', enumType: InvoiceLineType::class)]
-#[ORM\DiscriminatorMap(['invoice' => Line::class, 'recurring_invoice' => RecurringInvoiceLine::class])]
+#[ORM\DiscriminatorMap(['invoice' => Line::class, 'recurring_invoice' => RecurringInvoiceLine::class])]  
 #[ApiResource(
     uriTemplate: '/invoices/{invoiceId}/lines',
     shortName: 'InvoiceLine',
@@ -243,7 +244,8 @@ class Line implements LineInterface, Stringable
     #[ORM\PrePersist]
     public function updateTotal(): void
     {
-        $this->total = $this->getPrice()->toBigDecimal()->multipliedBy($this->qty);
+        $qty = BigDecimal::of((string) ($this->qty ?? 0));
+        $this->total = $this->getPrice()->toBigDecimal()->multipliedBy($qty)->toScale(0, RoundingMode::HALF_EVEN);
     }
 
     public function __toString(): string
